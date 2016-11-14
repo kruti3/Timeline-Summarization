@@ -7,7 +7,7 @@ class Features:
 
         def __init__(self):
             
-            self.DATA_PATH = 'C:\Users\Kruti\Desktop\NLP\Project\DataSet\Timeline17\Data'
+            self.DATA_PATH = '\DataSet\Timeline17\Data'
             self.INPUT_PATH = 'InputDocs'
 
             self.date_list = []
