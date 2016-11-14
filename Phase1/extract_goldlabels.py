@@ -6,7 +6,7 @@ class GoldLabel:
 
         def __init__(self):
             
-            self.DATA_PATH = 'C:\Users\Kruti\Desktop\NLP\Project\DataSet\Timeline17\Data'
+            self.DATA_PATH = '\DataSet\Timeline17\Data'
             self.OUTPUT_PATH = 'timelines'
             self.INPUT_PATH = 'InputDocs'
             self.OUTPUT_VECTOR = []
