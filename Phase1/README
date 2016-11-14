@@ -1,0 +1,10 @@
+USAGE:
+
+import phase1 as p
+
+#For creating feature vector goldlabels and dumping to a file
+p.create_metadata()
+
+#For training, predicting your classifier
+p.get_data()
+p.test_classifier()
