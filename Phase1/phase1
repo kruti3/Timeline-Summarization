@@ -87,8 +87,5 @@ class Classifier:
 
 		ypred = self.clf.predict(self.featurevector_list)
 		print "Accuracy Score", metrics.accuracy_score(self.gold_label, ypred)
-		print "Precision Score", metrics.precision_score(self.gold_label, ypred)
-		print "Recall Score", metrics.recall_score(self.gold_label, ypred)
-		print "F1 Score", metrics.f1_score(self.gold_label, ypred)
-
+	
 		pass
