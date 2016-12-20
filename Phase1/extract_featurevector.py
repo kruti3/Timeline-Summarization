@@ -1,5 +1,5 @@
 import os
-import datefinder
+import datefinder as DF
 import datetime
 
 
@@ -15,9 +15,12 @@ class Features:
             self.date_list = []
             self.feature_vector_list = []
             self.num_features = 6
+            self.date_referred_list = []
+            self.date_referred_set = set()
 
         def create_feature_vector(self, topic_name):      
 
+            self.date_list = []
             self.create_date_list(topic_name)
 
             self.feature_vector_list = [[0 for x in range(self.num_features)] for y in range(len(self.date_list))]
@@ -32,10 +35,7 @@ class Features:
                         self.update_featurevector(root_path, one_date, one_file)
                 
                 self.update_f1_feature(one_date, number_of_files)    
-                '''
-                self.update_f2_feature(one_date, len(files))
-                self.update_f3_feature(one_date, len(files))
-                '''
+
             return self.date_list, self.feature_vector_list
 
         def create_date_list(self, topic_name):
@@ -51,13 +51,53 @@ class Features:
             root_path = os.path.join(root_path, filename)
             file_obj = open(root_path, 'r')
 
-            date_referred_list = self.extract_datereference(file_obj)
-            
-            self.update_f4_feature(date_referred_list, date)
-            self.update_f5_feature(date_referred_list, date)
-            self.update_f6_feature(date_referred_list, date)
+            self.extract_datereference(file_obj, date)
 
-            return date_referred_list
+            print self.date_referred_list
+
+            self.update_f4_feature(date)
+            self.update_f5_feature(date)
+            self.update_f6_feature(date)
+
+            self.date_referred_set = set(self.date_referred_list)
+
+            self.update_f2_feature(date)
+            self.update_f3_feature(date)
+
+
+        def extract_datereference(self, file_obj, date):
+
+            self.date_referred_list = []
+            base_date = self.str_to_dtfmt(date)
+            date_finder = DF.DateFinder(base_date=base_date)
+
+            for line in file_obj:
+                str1 = date_finder.find_dates(line)
+                while True:
+                    try:
+                        t = (str1.__iter__()).next()
+                        one, flag = self.valid_date(t)
+                        if flag:
+                            #one_unaware = one.replace(tzinfo=None)
+                            self.date_referred_list.append(one)
+                    except ValueError:
+                        continue
+                    except StopIteration:
+                        break
+
+        def valid_date(self, str1):
+
+            if str1.year < 1950 or str1.year > 2017:
+                return str1, 0
+
+            if str1.month > 12 or str1.month < 1:
+                return str1, 0
+
+            if str1.day > 31 or str1.day < 1:
+                return str1, 0
+
+            return datetime.datetime(str1.year, str1.month, str1.day, 0,0,0,0), 1
+            pass
 
         def update_f1_feature(self, one_date, count):
 
@@ -65,74 +105,64 @@ class Features:
             if one_date in self.date_list:
                 self.feature_vector_list[self.date_list.index(one_date)][0] = count
 
-        def extract_datereference(self, file_obj):
+        def update_f2_feature(self, datecurr):
 
-            date_referred_list = []
+            # articles published after d and refer to d.
+            datecurr_fmt = self.str_to_dtfmt(datecurr)
 
-            for line in file_obj:
-                str1 = datefinder.find_dates(line)
-                while True:
-                        try:
-                            one, flag = self.valid_date((str1.__iter__()).next())
-                            if flag:
-                                one_unaware = one.replace(tzinfo=None)
-                                date_referred_list.append(one_unaware)
-                        except ValueError:
-                            continue
-                        except StopIteration:
-                            break
+            for one_date in self.date_referred_set:
+                #if self.valid_date(one_date):
+                    one_date_str = datetime.datetime.strftime(one_date, "%Y-%m-%d")
+                    if one_date_str in self.date_list:
+                        if datecurr_fmt > one_date:
+                            self.feature_vector_list[self.date_list.index(datecurr)][1] += 1
 
-            return date_referred_list
+        def update_f3_feature(self, datecurr):
 
-        def valid_date(self, str1):
+            # articles published before d and refer to d.
+            datecurr_fmt = self.str_to_dtfmt(datecurr)
 
-            if str1.year < 2000 or str1.year > 2015:
-                return str1, 0
+            for one_date in self.date_referred_set:
+                #if self.valid_date(one_date):
+                    one_date_str = datetime.datetime.strftime(one_date, "%Y-%m-%d")
+                    if one_date_str in self.date_list:
+                        if datecurr_fmt < one_date:
+                            self.feature_vector_list[self.date_list.index(datecurr)][2] += 1
 
-            if str1.month > 12 or str1.month < 1:
-                return str1, 0
-
-            if str1.date > 31 or str1.date < 1:
-                return str1, 0
-
-
-            return str1, 1
-            pass
-        
-        def update_f4_feature(self, date_referred_list, datecurr):
+        def update_f4_feature(self, datecurr):
 
             # sentences published on d and refer to d.
 
             datecurr_fmt = self.str_to_dtfmt(datecurr)
             
-            for one_date in date_referred_list:
-                if self.valid_date(one_date):
+            for one_date in self.date_referred_list:
+                #if self.valid_date(one_date):
                     one_date_str = datetime.datetime.strftime(one_date, "%Y-%m-%d")
                     if one_date_str in self.date_list:
                         if datecurr_fmt == one_date:
                             self.feature_vector_list[self.date_list.index(one_date_str)][3] += 1
 
-        def update_f5_feature(self, date_referred_list, datecurr):
+        def update_f5_feature(self, datecurr):
 
             # sentences published after d and refer to d.
 
             datecurr_fmt = self.str_to_dtfmt(datecurr)
 
-            for one_date in date_referred_list:
-                if self.valid_date(one_date):
+            for one_date in self.date_referred_list:
+                #if self.valid_date(one_date):
                     one_date_str = datetime.datetime.strftime(one_date, "%Y-%m-%d")
                     if one_date_str in self.date_list:
                         if datecurr_fmt > one_date:
                             self.feature_vector_list[self.date_list.index(one_date_str)][4] += 1
 
-        def update_f6_feature(self, date_referred_list, datecurr):
+        def update_f6_feature(self, datecurr):
 
             # sentences published before d and refer to d.
 
             datecurr_fmt = self.str_to_dtfmt(datecurr)
 
-            for one_date in date_referred_list:
-                if self.valid_date(one_date):
+            for one_date in self.date_referred_list:
+                #if self.valid_date(one_date):
                     one_date_str = datetime.datetime.strftime(one_date, "%Y-%m-%d")
                     if one_date_str in self.date_list:
                         if datecurr_fmt < one_date:
